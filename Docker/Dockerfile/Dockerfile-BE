@@ -1,0 +1,38 @@
+FROM existenz/webstack:7.3
+
+# Essentials
+RUN echo "UTC" > /etc/timezone
+RUN apk add --no-cache zip unzip nano git
+
+# Install bash
+RUN apk add --no-cache bash
+RUN sed -i 's/bin\/ash/bin\/bash/g' /etc/passwd
+
+# Install & Configure php extensions
+RUN apk -U --no-cache add php7 php7-dom php7-phar php7-json \ 
+    php7-openssl php7-exif php7-pcntl php7-gd php7-mbstring \
+    php7-tokenizer php7-fileinfo php7-session php7-pdo_mysql
+
+# Install composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/
+
+# Copy app to docker
+COPY ../src/APPNAME-BE /www
+COPY ./etc/php/local.ini /usr/local/etc/php/conf.d/local.ini
+
+# Give directories permission
+RUN chown -R php:nginx /www \
+    && find /www -type d -exec chmod -R 555 {} \; \
+    && find /www -type f -exec chmod -R 444 {} \; \
+    && find /www/storage /www/bootstrap/cache -type d -exec chmod -R 755 {} \; \
+    && find /www/storage /www/bootstrap/cache -type f -exec chmod -R 644 {} \;
+
+# Initialize app
+RUN composer install --no-dev --no-scripts --no-progress \
+    && php artisan storage:link
+
+# Optimize app
+RUN php artisan optimize:clear
+
+# Expose port
+EXPOSE 80 443
