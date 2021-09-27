@@ -11,7 +11,7 @@ RUN apk add --no-cache bash
 RUN sed -i 's/bin\/ash/bin\/bash/g' /etc/passwd
 
 # Copy app to docker
-COPY ../src/APPNAME-FE /app
+COPY ./src/APPNAME-FE /app
 
 # Build app
 RUN npm ci --silent
